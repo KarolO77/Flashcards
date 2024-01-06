@@ -10,7 +10,6 @@ class Score:
         self.display_surface = pygame.display.get_surface()
 
         # ye
-        self.end_height = 0
         self.font = pygame.font.Font(join('fonts','nocontinue.ttf'), 30)
         self.custom_image = pygame.transform.scale(pygame.image.load(join('visuals','WIDE_CUSTOM_BUTTON.jpg')), (80,50))
 
@@ -29,7 +28,7 @@ class Score:
         
         for index, points in enumerate([self.known, self.unknown, self.remaining]):
             x_pos = index * 140
-            y_pos = self.surface.get_height() / 4 + self.end_height
+            y_pos = self.surface.get_height() / 4
             text_pos = (x_pos+self.custom_image.get_width()/2, y_pos+self.custom_image.get_height() / 2)
 
             self.surface.blit(self.custom_image, (x_pos,y_pos))

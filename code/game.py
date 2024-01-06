@@ -26,10 +26,12 @@ class Game:
         self.ended = False
 
         # fonts
-        self.card_font_size = 60
-        self.card_font = pygame.font.Font(join('fonts','nocontinue.ttf'), self.card_font_size)
-        self.definition_font = pygame.font.Font(join('fonts','nocontinue.ttf'), 20)
-        self.start_font = pygame.font.Font(join('fonts','nocontinue.ttf'), 40)
+        self.font = "Amble-Bold.ttf"
+        self.card_font_size = 50 # 60
+        self.def_font_size = 15 # 20
+        self.card_font = pygame.font.Font(join('fonts',self.font), self.card_font_size)
+        self.definition_font = pygame.font.Font(join('fonts',self.font), self.def_font_size)
+        self.start_font = pygame.font.Font(join('fonts',self.font), 30) # 40
 
         # dictionaries
         self.data = data
@@ -50,8 +52,8 @@ class Game:
 
         self.buttons = {
             'card' : Button((WINDOW_WIDTH//2 - self.card_image.get_width()//2, self.card_image.get_height()//2), self.card_image),
-            'left_dict' : Button((WINDOW_WIDTH//2 - self.dict_button_image.get_width()//2, WINDOW_HEIGHT//5), self.dict_button_image, "Word to Definition"),
-            'right_dict' : Button((WINDOW_WIDTH//2 - self.dict_button_image.get_width()//2, WINDOW_HEIGHT//2), self.dict_button_image, "Definition to Word"),
+            'left_dict' : Button((WINDOW_WIDTH//2 - self.dict_button_image.get_width()//2, WINDOW_HEIGHT//5), self.dict_button_image, "WORD TO DEFINITION"),
+            'right_dict' : Button((WINDOW_WIDTH//2 - self.dict_button_image.get_width()//2, WINDOW_HEIGHT//2), self.dict_button_image, "DEFINITION TO WORD"),
             'restart' : Button((WINDOW_WIDTH//2 + self.continue_image.get_width()//5, WINDOW_HEIGHT//2), self.continue_image, "RESTART"),
             'continue' : Button((WINDOW_WIDTH//2 - self.continue_image.get_width()*1.2, WINDOW_HEIGHT//2), self.continue_image, "CONTINUE"),
             'known' : Button((WINDOW_WIDTH//2 + self.known_image.get_width()//3, WINDOW_HEIGHT - self.known_image.get_height()*2 -10), self.known_image, ">>>"),
@@ -135,13 +137,26 @@ class Game:
         if not self.timers['mouse'].active:
 
             if self.buttons['restart'].clicked(self.mouse_pos):
-                print('restart', self.buttons['restart'].pos)
+                self.restart_game()
                 self.timers['mouse'].activate()
 
             if self.buttons['continue'].clicked(self.mouse_pos) and not self.ended:
                 self.end_of_round = False
                 self.update_score()
                 self.timers['mouse'].activate()
+
+    def restart_game(self):
+        self.end_of_round = False
+        self.ended = False
+        self.started = False
+
+        self.known = 0
+        self.unknown = 0
+        self.remaining = 0
+
+        self.buttons['restart'] = Button((WINDOW_WIDTH//2 + self.continue_image.get_width()//5, WINDOW_HEIGHT//2), self.continue_image, "RESTART")
+        self.unknown_keys.clear()
+        self.all_words_dict.clear()
 
     # create dicts
     def create_left_to_right_words_dict(self):
@@ -283,7 +298,7 @@ class Game:
                 # show definition
                 for index, phrase in enumerate(self.displayed_current_definition_word):
                     position = (self.buttons['card'].text_pos[0], 
-                    self.buttons['card'].text_pos[1] + 90 + index*20)
+                    self.buttons['card'].text_pos[1] + 90 + index*self.def_font_size)
 
                     display_text(self.surface, phrase, position, self.definition_font)
             
@@ -299,10 +314,9 @@ class Game:
                 # show definition
                 for index, phrase in enumerate(self.displayed_current_definition_trans):
                     position = (self.buttons['card'].text_pos[0], 
-                    self.buttons['card'].text_pos[1] + 90 + index*20)
+                    self.buttons['card'].text_pos[1] + 90 + index*self.def_font_size)
 
                     display_text(self.surface, phrase, position, self.definition_font)
-
 
     def display_end(self): # end of round || end of game
         if not self.ended:

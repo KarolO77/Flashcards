@@ -16,7 +16,7 @@ class Main:
 
         # data
         with open(join('Fiszki.txt'), 'r', encoding='UTF-8') as file:
-            self.data = [i.replace('–','-').strip() for i in file.read().strip().splitlines()]
+            self.data = [i.replace('–','-').strip().upper() for i in file.read().strip().splitlines()]
 
         # components
         self.game = Game(self.data, self.update_score)
@@ -27,10 +27,6 @@ class Main:
         self.score.unknown = unknown
         self.score.remaining = remaining
 
-    def update_score_height(self):
-        if self.game.ended:
-            self.score.end_height = 100
-
     def run(self):
         while True:
 
@@ -38,9 +34,6 @@ class Main:
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     exit()
-
-            # update sth
-            self.update_score_height()
 
             # game
             self.game.run()
