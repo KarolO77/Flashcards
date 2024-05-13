@@ -173,7 +173,7 @@ class Game:
                 english_word = phrase[:p1]
                 polish_word = phrase[p1+3:p2]
                 definition_of_word = check_brackets(phrase[p2+3:])
-                translated_definition = translate_text(definition_of_word)
+                translated_definition = definition_of_word
 
                 self.all_words_dict[english_word] = (polish_word, definition_of_word, translated_definition)
 
@@ -196,7 +196,7 @@ class Game:
                 english_word = phrase[:p1]
                 polish_word = phrase[p1+3:p2]
                 definition_of_word = check_brackets(phrase[p2+3:])
-                translated_definition = translate_text(definition_of_word)
+                translated_definition = definition_of_word
 
                 self.all_words_dict[polish_word] = (english_word, translated_definition, definition_of_word)
 
