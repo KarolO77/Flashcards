@@ -40,7 +40,7 @@ def translate_text(text):
 
 
 def check_brackets(text):
-    if not (text[-1] == ")" and text[0] == "("):
-        return "(" + text + ")"
-    else:
+    if text == f"({text})":
         return text
+    else:
+        return "(" + text + ")"

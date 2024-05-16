@@ -21,6 +21,7 @@ class Game:
         
         # status
         self.started = False
+        self.first_round = True
         self.end_of_round = False
         self.translation_view = False
         self.ended = False
@@ -36,6 +37,7 @@ class Game:
         # dictionaries
         self.data = data
         self.all_words_dict = dict()
+        self.translated_definitions = dict()
 
         self.displayed_current_word = ''
         self.displayed_current_translation = ''
@@ -96,12 +98,12 @@ class Game:
             if not self.timers['mouse'].active:
 
                 if self.buttons['left_dict'].clicked(self.mouse_pos):
-                    self.create_left_to_right_words_dict()
+                    self.create_words_dict_word_def()
                     self.get_next_word()
                     self.timers['mouse'].activate()
 
                 if self.buttons['right_dict'].clicked(self.mouse_pos):
-                    self.create_right_to_left_words_dict()
+                    self.create_words_dict_def_word()
                     self.get_next_word()
                     self.timers['mouse'].activate()
 
@@ -109,10 +111,7 @@ class Game:
             if not self.timers['mouse'].active:
 
                 if self.buttons['card'].clicked(self.mouse_pos):
-                    if self.translation_view == False:
-                        self.translation_view = True
-                    else:
-                        self.translation_view = False
+                    self.translation_view = not self.translation_view
                     self.timers['mouse'].activate()
 
                 if self.buttons['known'].clicked(self.mouse_pos):
@@ -149,6 +148,7 @@ class Game:
         self.end_of_round = False
         self.ended = False
         self.started = False
+        self.first_round = False
 
         self.known = 0
         self.unknown = 0
@@ -159,46 +159,58 @@ class Game:
         self.all_words_dict.clear()
 
     # create dicts
-    def create_left_to_right_words_dict(self):
+    def create_words_dict_word_def(self):
 
         for phrase in self.data:
             p1, p2 = phrase.find(" - "), phrase.rfind(" - ")
 
             if p1 == p2:
-                english_word = phrase[:p1]
-                polish_word = phrase[p1+3:]
-                self.all_words_dict[english_word] = (polish_word)
+                word = phrase[:p1]
+                translation = phrase[p1+3:]
+                self.all_words_dict[word] = (translation)
 
             elif p1 != p2:
-                english_word = phrase[:p1]
-                polish_word = phrase[p1+3:p2]
+                word = phrase[:p1]
+                translation = phrase[p1+3:p2]
                 definition_of_word = check_brackets(phrase[p2+3:])
-                translated_definition = definition_of_word
 
-                self.all_words_dict[english_word] = (polish_word, definition_of_word, translated_definition)
+                # translating definition and saving it for next rounds so as not to reload api again each time
+                if self.first_round:
+                    translated_definition = translate_text(definition_of_word)
+                    self.translated_definitions[definition_of_word] = translated_definition
+                else:
+                    translated_definition = self.translated_definitions[definition_of_word]
+
+                self.all_words_dict[word] = (translation, definition_of_word, translated_definition)
 
         self.remaining = len(self.all_words_dict)
         self.dict_gen = (i for i in self.all_words_dict.keys())
         self.update_score()
         self.started = True
 
-    def create_right_to_left_words_dict(self):
+    def create_words_dict_def_word(self):
 
         for phrase in self.data:
             p1, p2 = phrase.find(" - "), phrase.rfind(" - ")
 
             if p1 == p2:
-                english_word = phrase[:p1]
-                polish_word = phrase[p1+3:]
-                self.all_words_dict[polish_word] = (english_word)
+                word = phrase[:p1]
+                translation = phrase[p1+3:]
+                self.all_words_dict[translation] = (word)
 
             elif p1 != p2:
-                english_word = phrase[:p1]
-                polish_word = phrase[p1+3:p2]
+                word = phrase[:p1]
+                translation = phrase[p1+3:p2]
                 definition_of_word = check_brackets(phrase[p2+3:])
-                translated_definition = definition_of_word
 
-                self.all_words_dict[polish_word] = (english_word, translated_definition, definition_of_word)
+                # translating definition and saving it for next rounds so as not to reload api again each time
+                if self.first_round:
+                    translated_definition = translate_text(definition_of_word)
+                    self.translated_definitions[definition_of_word] = translated_definition
+                else: 
+                    translated_definition = self.translated_definitions[definition_of_word]
+
+                self.all_words_dict[translation] = (word, translated_definition, definition_of_word)
 
         self.remaining = len(self.all_words_dict)
         self.dict_gen = (i for i in self.all_words_dict.keys())
