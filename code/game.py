@@ -98,12 +98,12 @@ class Game:
             if not self.timers['mouse'].active:
 
                 if self.buttons['left_dict'].clicked(self.mouse_pos):
-                    self.create_words_dict_word_def()
+                    self.create_words_dict(True)
                     self.get_next_word()
                     self.timers['mouse'].activate()
 
                 if self.buttons['right_dict'].clicked(self.mouse_pos):
-                    self.create_words_dict_def_word()
+                    self.create_words_dict(False)
                     self.get_next_word()
                     self.timers['mouse'].activate()
 
@@ -158,82 +158,63 @@ class Game:
         self.unknown_keys.clear()
         self.all_words_dict.clear()
 
-    # create dicts
-    def create_words_dict_word_def(self):
-
+    # dicts
+    def create_words_dict(self, arg):
         for phrase in self.data:
-            p1, p2 = phrase.find(" - "), phrase.rfind(" - ")
 
+            # finding where is word, translation and definition
+            p1 = phrase.find(" - ")
+            p2 = phrase.rfind(" - ")
+
+            # single assignment
             if p1 == p2:
                 word = phrase[:p1]
                 translation = phrase[p1+3:]
-                self.all_words_dict[word] = (translation)
 
-            elif p1 != p2:
-                word = phrase[:p1]
-                translation = phrase[p1+3:p2]
-                definition_of_word = check_brackets(phrase[p2+3:])
-
-                # translating definition and saving it for next rounds so as not to reload api again each time
-                if self.first_round:
-                    translated_definition = translate_text(definition_of_word)
-                    self.translated_definitions[definition_of_word] = translated_definition
+                if arg:
+                    self.all_words_dict[word] = (translation)
                 else:
-                    translated_definition = self.translated_definitions[definition_of_word]
+                    self.all_words_dict[translation] = (word)
 
-                self.all_words_dict[word] = (translation, definition_of_word, translated_definition)
-
-        self.remaining = len(self.all_words_dict)
-        self.dict_gen = (i for i in self.all_words_dict.keys())
-        self.update_score()
-        self.started = True
-
-    def create_words_dict_def_word(self):
-
-        for phrase in self.data:
-            p1, p2 = phrase.find(" - "), phrase.rfind(" - ")
-
-            if p1 == p2:
-                word = phrase[:p1]
-                translation = phrase[p1+3:]
-                self.all_words_dict[translation] = (word)
-
+            # assign with definition
             elif p1 != p2:
                 word = phrase[:p1]
                 translation = phrase[p1+3:p2]
-                definition_of_word = check_brackets(phrase[p2+3:])
+                definition = check_brackets(phrase[p2+3:])
 
-                # translating definition and saving it for next rounds so as not to reload api again each time
+                # translating definition and saving it for next 
+                # rounds so as not to reload api again each time
                 if self.first_round:
-                    translated_definition = translate_text(definition_of_word)
-                    self.translated_definitions[definition_of_word] = translated_definition
+                    translated_definition = translate_text(definition)
+                    self.translated_definitions[definition] = translated_definition
                 else: 
-                    translated_definition = self.translated_definitions[definition_of_word]
+                    translated_definition = self.translated_definitions[definition]
 
-                self.all_words_dict[translation] = (word, translated_definition, definition_of_word)
+                if arg:
+                    self.all_words_dict[word] = (translation, definition, translated_definition)
+                else:
+                    self.all_words_dict[translation] = (word, translated_definition, definition)
 
-        self.remaining = len(self.all_words_dict)
         self.dict_gen = (i for i in self.all_words_dict.keys())
-        self.update_score()
+        self.remaining = len(self.all_words_dict)
         self.started = True
-    
-    # dict operations
+        self.update_score()
+
     def get_next_word(self):
         try:
             self.current_word = next(self.dict_gen)
-
-            if isinstance(self.all_words_dict[self.current_word], tuple):
-                self.translation = self.all_words_dict[self.current_word][0]
-                self.translated_definition = self.all_words_dict[self.current_word][1]
-                self.native_definition = self.all_words_dict[self.current_word][2]
-            else: 
-                self.translation = self.all_words_dict[self.current_word]
-                self.translated_definition = ''
-                self.native_definition = ''
-            self.card_update()
-
         except StopIteration:
             self.create_new_game()
+
+        if isinstance(self.all_words_dict[self.current_word], tuple):
+            self.translation = self.all_words_dict[self.current_word][0]
+            self.translated_definition = self.all_words_dict[self.current_word][1]
+            self.native_definition = self.all_words_dict[self.current_word][2]
+        else: 
+            self.translation = self.all_words_dict[self.current_word]
+            self.translated_definition = ''
+            self.native_definition = ''
+        self.card_update()
 
     def create_new_game(self): # if list go out of words, create new dict
         if self.unknown_keys:
@@ -267,6 +248,7 @@ class Game:
 
         self.translation_view = False
 
+    # counting
     def known_word(self):
         self.known_keys.append(self.current_word)
         self.update_score('known')
