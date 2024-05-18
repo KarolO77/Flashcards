@@ -176,7 +176,7 @@ class Game:
                 else:
                     self.all_words_dict[translation] = (word)
 
-            # assign with definition
+            # assignment with definition
             elif p1 != p2:
                 word = phrase[:p1]
                 translation = phrase[p1+3:p2]
