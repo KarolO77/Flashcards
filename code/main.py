@@ -27,10 +27,10 @@ class Main:
         self.score = Score()
 
     def update_score(self, known, unknown, remaining):
-        self.score.known = known
-        self.score.unknown = unknown
         self.score.remaining = remaining
-
+        self.score.unknown = unknown
+        self.score.known = known
+        
     def run(self):
         while True:
 
@@ -52,5 +52,3 @@ class Main:
 if __name__ == "__main__":
     main = Main()
     main.run()
-
-# restart, czas + dict

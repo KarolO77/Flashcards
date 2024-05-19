@@ -14,6 +14,15 @@ class Button():
 
 		self.is_clicked = False
 
+	def update_pos(self, pos, text_pos=False):
+		self.pos = pos
+		self.rect = self.image.get_rect(topleft = pos)
+		if text_pos:
+			self.text_pos = text_pos
+		else:
+			self.text_pos = (pos[0]+self.width/2,pos[1]+self.height/2)
+
+
 	def clicked(self, mouse_pos):
 
 		if self.rect.collidepoint(mouse_pos):

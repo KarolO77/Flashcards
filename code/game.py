@@ -53,13 +53,13 @@ class Game:
         self.known_image = pygame.transform.scale(self.continue_image, (80,80))
 
         self.buttons = {
-            'card' : Button((WINDOW_WIDTH//2 - self.card_image.get_width()//2, self.card_image.get_height()//2), self.card_image),
-            'left_dict' : Button((WINDOW_WIDTH//2 - self.dict_button_image.get_width()//2, WINDOW_HEIGHT//5), self.dict_button_image, "WORD TO DEFINITION"),
-            'right_dict' : Button((WINDOW_WIDTH//2 - self.dict_button_image.get_width()//2, WINDOW_HEIGHT//2), self.dict_button_image, "DEFINITION TO WORD"),
-            'restart' : Button((WINDOW_WIDTH//2 + self.continue_image.get_width()//5, WINDOW_HEIGHT//2), self.continue_image, "RESTART"),
-            'continue' : Button((WINDOW_WIDTH//2 - self.continue_image.get_width()*1.2, WINDOW_HEIGHT//2), self.continue_image, "CONTINUE"),
-            'known' : Button((WINDOW_WIDTH//2 + self.known_image.get_width()//3, WINDOW_HEIGHT - self.known_image.get_height()*2 -10), self.known_image, ">>>"),
-            'unknown' : Button((WINDOW_WIDTH//2 - self.known_image.get_width()*1.5, WINDOW_HEIGHT - self.known_image.get_height()*2 -10), self.known_image, "<<<")
+            'card' : Button((HALF_WIDTH - self.card_image.get_width()//2, self.card_image.get_height()//2), self.card_image),
+            'left_dict' : Button((HALF_WIDTH - self.dict_button_image.get_width()//2, WINDOW_HEIGHT//5), self.dict_button_image, "WORD TO DEFINITION"),
+            'right_dict' : Button((HALF_WIDTH - self.dict_button_image.get_width()//2, HALF_HEIGHT), self.dict_button_image, "DEFINITION TO WORD"),
+            'restart' : Button((HALF_WIDTH + self.continue_image.get_width()//5, HALF_HEIGHT), self.continue_image, "RESTART"),
+            'continue' : Button((HALF_WIDTH - self.continue_image.get_width()*1.2, HALF_HEIGHT), self.continue_image, "CONTINUE"),
+            'known' : Button((HALF_WIDTH + self.known_image.get_width()//3, WINDOW_HEIGHT - self.known_image.get_height()*2 -10), self.known_image, ">>>"),
+            'unknown' : Button((HALF_WIDTH - self.known_image.get_width()*1.5, WINDOW_HEIGHT - self.known_image.get_height()*2 -10), self.known_image, "<<<")
         }
 
         # timer 
@@ -77,7 +77,23 @@ class Game:
     def get_mouse_pos(self):
         self.mouse_pos = pygame.mouse.get_pos()
 
-    def timer_update(self):
+    def get_next_word(self):
+        try:
+            self.current_word = next(self.dict_gen)
+        except StopIteration:
+            self.prepare_new_round()
+
+        if isinstance(self.all_words_dict[self.current_word], tuple):
+            self.translation = self.all_words_dict[self.current_word][0]
+            self.translated_definition = self.all_words_dict[self.current_word][1]
+            self.native_definition = self.all_words_dict[self.current_word][2]
+        else: 
+            self.translation = self.all_words_dict[self.current_word]
+            self.translated_definition = ''
+            self.native_definition = ''
+        self.update_card()
+
+    def update_timer(self):
         for timer in self.timers.values():
             timer.update()
             
@@ -91,6 +107,94 @@ class Game:
 
         self.update_score_func(self.known, self.unknown, self.remaining)
 
+    def update_card(self):
+        self.displayed_current_word = extract_phrase(adjust_text(self.current_word))
+        self.cw_len = len(self.displayed_current_word)
+        self.displayed_current_definition_word = extract_phrase(adjust_text(self.native_definition, 8))
+
+        self.displayed_current_translation = extract_phrase(adjust_text(self.translation))
+        self.ct_len = len(self.displayed_current_translation)
+        self.displayed_current_definition_trans = extract_phrase(adjust_text(self.translated_definition, 8))
+
+        self.translation_view = False
+    
+    def prepare_new_round(self):
+        if self.unknown_keys:
+            self.unknown_keys = list(set(self.unknown_keys))
+            self.dict_gen = (i for i in self.unknown_keys[:])
+
+            self.known = 0
+            self.unknown = 0
+            self.remaining = len(self.unknown_keys)
+
+            self.unknown_keys.clear()
+            self.get_next_word()
+            self.translation_view = False
+            self.ended = False
+        else:
+            self.ended = True
+            self.buttons["restart"].update_pos((HALF_WIDTH - self.continue_image.get_width()//2, HALF_HEIGHT),
+                                           (HALF_WIDTH, self.buttons['restart'].text_pos[1]))
+            
+        self.end_of_round = True
+
+    # new game
+    def create_words_dict(self, arg):
+        for phrase in self.data:
+
+            # finding where is word, translation and definition
+            p1 = phrase.find(" - ")
+            p2 = phrase.rfind(" - ")
+
+            # single assignment
+            if p1 == p2:
+                word = phrase[:p1]
+                translation = phrase[p1+3:]
+
+                if arg:
+                    self.all_words_dict[word] = (translation)
+                else:
+                    self.all_words_dict[translation] = (word)
+
+            # assignment with definition
+            elif p1 != p2:
+                word = phrase[:p1]
+                translation = phrase[p1+3:p2]
+                definition = check_brackets(phrase[p2+3:])
+
+                # translating definition and saving it for next 
+                # rounds so as not to reload api again each time
+                if self.first_round:
+                    translated_definition = translate_text(definition)
+                    self.translated_definitions[definition] = translated_definition
+                else: 
+                    translated_definition = self.translated_definitions[definition]
+
+                if arg:
+                    self.all_words_dict[word] = (translation, definition, translated_definition)
+                else:
+                    self.all_words_dict[translation] = (word, translated_definition, definition)
+
+        self.dict_gen = (i for i in self.all_words_dict.keys())
+        self.remaining = len(self.all_words_dict)
+        self.started = True
+        self.update_score()
+
+    def restart_game(self):
+        self.end_of_round = False
+        self.ended = False
+        self.started = False
+        self.first_round = False
+
+        self.known = 0
+        self.unknown = 0
+        self.remaining = 0
+
+        self.buttons['restart'].update_pos((HALF_WIDTH + self.continue_image.get_width()//5, HALF_HEIGHT))
+        self.unknown_keys.clear()
+        self.all_words_dict.clear()
+    
+    # buttons
     def check_game_buttons(self):
         self.keys = pygame.key.get_pressed()
 
@@ -144,111 +248,7 @@ class Game:
                 self.update_score()
                 self.timers['mouse'].activate()
 
-    def restart_game(self):
-        self.end_of_round = False
-        self.ended = False
-        self.started = False
-        self.first_round = False
-
-        self.known = 0
-        self.unknown = 0
-        self.remaining = 0
-
-        self.buttons['restart'] = Button((WINDOW_WIDTH//2 + self.continue_image.get_width()//5, WINDOW_HEIGHT//2), self.continue_image, "RESTART")
-        self.unknown_keys.clear()
-        self.all_words_dict.clear()
-
-    # dicts
-    def create_words_dict(self, arg):
-        for phrase in self.data:
-
-            # finding where is word, translation and definition
-            p1 = phrase.find(" - ")
-            p2 = phrase.rfind(" - ")
-
-            # single assignment
-            if p1 == p2:
-                word = phrase[:p1]
-                translation = phrase[p1+3:]
-
-                if arg:
-                    self.all_words_dict[word] = (translation)
-                else:
-                    self.all_words_dict[translation] = (word)
-
-            # assignment with definition
-            elif p1 != p2:
-                word = phrase[:p1]
-                translation = phrase[p1+3:p2]
-                definition = check_brackets(phrase[p2+3:])
-
-                # translating definition and saving it for next 
-                # rounds so as not to reload api again each time
-                if self.first_round:
-                    translated_definition = translate_text(definition)
-                    self.translated_definitions[definition] = translated_definition
-                else: 
-                    translated_definition = self.translated_definitions[definition]
-
-                if arg:
-                    self.all_words_dict[word] = (translation, definition, translated_definition)
-                else:
-                    self.all_words_dict[translation] = (word, translated_definition, definition)
-
-        self.dict_gen = (i for i in self.all_words_dict.keys())
-        self.remaining = len(self.all_words_dict)
-        self.started = True
-        self.update_score()
-
-    def get_next_word(self):
-        try:
-            self.current_word = next(self.dict_gen)
-        except StopIteration:
-            self.create_new_game()
-
-        if isinstance(self.all_words_dict[self.current_word], tuple):
-            self.translation = self.all_words_dict[self.current_word][0]
-            self.translated_definition = self.all_words_dict[self.current_word][1]
-            self.native_definition = self.all_words_dict[self.current_word][2]
-        else: 
-            self.translation = self.all_words_dict[self.current_word]
-            self.translated_definition = ''
-            self.native_definition = ''
-        self.card_update()
-
-    def create_new_game(self): # if list go out of words, create new dict
-        if self.unknown_keys:
-            self.unknown_keys = list(set(self.unknown_keys))
-            self.dict_gen = (i for i in self.unknown_keys[:])
-
-            self.known = 0
-            self.unknown = 0
-            self.remaining = len(self.unknown_keys)
-
-            self.unknown_keys.clear()
-            self.get_next_word()
-            self.translation_view = False
-            self.ended = False
-        else:
-            self.ended = True
-            self.buttons['restart'].pos = (WINDOW_WIDTH//2 - self.continue_image.get_width()//2, WINDOW_HEIGHT//2)
-            self.buttons['restart'].rect = self.buttons['restart'].image.get_rect(topleft = self.buttons['restart'].pos)
-            self.buttons['restart'].text_pos = (WINDOW_WIDTH//2, self.buttons['restart'].text_pos[1])
-            
-        self.end_of_round = True
-
-    def card_update(self):
-        self.displayed_current_word = extract_phrase(adjust_text(self.current_word))
-        self.cw_len = len(self.displayed_current_word)
-        self.displayed_current_definition_word = extract_phrase(adjust_text(self.native_definition, 8))
-
-        self.displayed_current_translation = extract_phrase(adjust_text(self.translation))
-        self.ct_len = len(self.displayed_current_translation)
-        self.displayed_current_definition_trans = extract_phrase(adjust_text(self.translated_definition, 8))
-
-        self.translation_view = False
-
-    # counting
+    # counting answers
     def known_word(self):
         self.known_keys.append(self.current_word)
         self.update_score('known')
@@ -331,19 +331,19 @@ class Game:
 
         # update
         self.get_mouse_pos()
-        self.timer_update()
+        self.update_timer()
 
         # game
         self.surface.fill(BOARD_COLOR)
 
         if not self.end_of_round:
-            self.check_game_buttons()
             self.display_game()
             self.display_card()
+            self.check_game_buttons()
 
         if self.end_of_round:
-            self.check_end_buttons()
             self.display_end()
+            self.check_end_buttons()
 
         # screen + frame
         self.display_surface.blit(self.surface, self.rect)
